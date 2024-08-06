@@ -84,7 +84,7 @@ https://toughengineer.github.io/demo/slider-styler*/
 :root {
   --slider-height: 0.25rem;
   --slider-border-radius: 1em;
-  --slider-progress-background: #8652bb;
+  --slider-progress-background: #ef34f57d; /* Purple color */
 }
 
 input[type=range].styled-slider {
