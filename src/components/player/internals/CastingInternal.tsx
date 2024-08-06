@@ -1,121 +1,117 @@
-import { ReactNode, useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 
+import { mediaItemTypeToMediaType } from "@/backend/metadata/tmdb";
 import { makeVideoElementDisplayInterface } from "@/components/player/display/base";
-import { convertSubtitlesToObjectUrl } from "@/components/player/utils/captions";
-import { playerStatus } from "@/stores/player/slices/source";
+import { makeChromecastDisplayInterface } from "@/components/player/display/chromecast";
+import { useChromecastAvailable } from "@/hooks/useChromecastAvailable";
 import { usePlayerStore } from "@/stores/player/store";
 
-import { useInitializeSource } from "../hooks/useInitializePlayer";
-
-// initialize display interface
-function useDisplayInterface() {
-  const display = usePlayerStore((s) => s.display);
+export function CastingInternal() {
+  const setInstance = usePlayerStore((s) => s.casting.setInstance);
+  const setController = usePlayerStore((s) => s.casting.setController);
+  const setPlayer = usePlayerStore((s) => s.casting.setPlayer);
+  const setIsCasting = usePlayerStore((s) => s.casting.setIsCasting);
+  const isCasting = usePlayerStore((s) => s.interface.isCasting);
+  const caption = usePlayerStore((s) => s.caption?.selected);
   const setDisplay = usePlayerStore((s) => s.setDisplay);
-
-  const displayRef = useRef(display);
-  useEffect(() => {
-    displayRef.current = display;
-  }, [display]);
-
-  useEffect(() => {
-    if (!displayRef.current) {
-      const newDisplay = makeVideoElementDisplayInterface();
-      displayRef.current = newDisplay;
-      setDisplay(newDisplay);
-    }
-    return () => {
-      if (displayRef.current) {
-        displayRef.current = null;
-        setDisplay(null);
-      }
-    };
-  }, [setDisplay]);
-}
-
-export function useShouldShowVideoElement() {
-  const status = usePlayerStore((s) => s.status);
-
-  if (status !== playerStatus.PLAYING) return false;
-  return true;
-}
-
-function useObjectUrl(cb: () => string | null, deps: any[]) {
-  const lastObjectUrl = useRef<string | null>(null);
-  const output = useMemo(() => {
-    if (lastObjectUrl.current) URL.revokeObjectURL(lastObjectUrl.current);
-    const data = cb();
-    lastObjectUrl.current = data;
-    return data;
-    // deps are passed in, cb is known not to be changed
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-
-  useEffect(() => {
-    return () => {
-      // this is intentionally done only in cleanup
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      if (lastObjectUrl.current) URL.revokeObjectURL(lastObjectUrl.current);
-    };
-  }, []);
-
-  return output;
-}
-
-function VideoElement() {
-  const videoEl = useRef<HTMLVideoElement>(null);
-  const trackEl = useRef<HTMLTrackElement>(null);
+  const redisplaySource = usePlayerStore((s) => s.redisplaySource);
+  const available = useChromecastAvailable();
   const display = usePlayerStore((s) => s.display);
-  const srtData = usePlayerStore((s) => s.caption.selected?.srtData);
-  const language = usePlayerStore((s) => s.caption.selected?.language);
-  const isCasting = usePlayerStore((state) => state.interface.isCasting);
-  const trackObjectUrl = useObjectUrl(
-    () => (srtData ? convertSubtitlesToObjectUrl(srtData) : null),
-    [srtData],
-  );
 
-  // report video element to display interface
+  const controller = usePlayerStore((s) => s.casting.controller);
+  const player = usePlayerStore((s) => s.casting.player);
+  const instance = usePlayerStore((s) => s.casting.instance);
+  const time = usePlayerStore((s) => s.progress.time);
+  const metaTitle = usePlayerStore((s) => s.meta?.title);
+  const metaType = usePlayerStore((s) => s.meta?.type);
+
+  const dataRef = useRef({
+    controller,
+    player,
+    instance,
+    time,
+    metaTitle,
+    metaType,
+    caption,
+  });
   useEffect(() => {
-    if (display && videoEl.current) {
-      display.processVideoElement(videoEl.current);
-    }
-  }, [display, videoEl]);
+    dataRef.current = {
+      controller,
+      player,
+      instance,
+      time,
+      metaTitle,
+      metaType,
+      caption,
+    };
+  }, [controller, player, instance, time, metaTitle, metaType, caption]);
 
-  // select track as showing if it exists
   useEffect(() => {
-    if (trackEl.current) {
-      trackEl.current.track.mode = "showing";
+    if (isCasting) {
+      if (
+        dataRef.current.controller &&
+        dataRef.current.instance &&
+        dataRef.current.player
+      ) {
+        const newDisplay = makeChromecastDisplayInterface({
+          controller: dataRef.current.controller,
+          instance: dataRef.current.instance,
+          player: dataRef.current.player,
+        });
+        newDisplay.setMeta({
+          title: dataRef.current.metaTitle ?? "",
+          type: mediaItemTypeToMediaType(dataRef.current.metaType ?? "movie"),
+        });
+        newDisplay.setCaption(dataRef.current.caption);
+        setDisplay(newDisplay);
+        redisplaySource(dataRef.current.time ?? 0);
+      }
+    } else {
+      const newDisplay = makeVideoElementDisplayInterface();
+      setDisplay(newDisplay);
+      redisplaySource(dataRef.current.time ?? 0);
     }
-  }, [trackEl]);
+  }, [isCasting, setDisplay, redisplaySource]);
 
-  let subtitleTrack: ReactNode = null;
-  if (isCasting && trackObjectUrl && language)
-    subtitleTrack = (
-      <track
-        label="movie-web"
-        kind="subtitles"
-        srcLang={language}
-        src={trackObjectUrl}
-        default
-      />
+  useEffect(() => {
+    display?.setMeta({
+      title: dataRef.current.metaTitle ?? "",
+      type: mediaItemTypeToMediaType(dataRef.current.metaType ?? "movie"),
+    });
+  }, [metaTitle, metaType, display]);
+
+  useEffect(() => {
+    if (!available) return;
+
+    const ins = cast.framework.CastContext.getInstance();
+    setInstance(ins);
+    ins.setOptions({
+      receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+      autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+    });
+
+    const newPlayer = new cast.framework.RemotePlayer();
+    setPlayer(newPlayer);
+    const newControlller = new cast.framework.RemotePlayerController(newPlayer);
+    setController(newControlller);
+
+    function connectionChanged(e: cast.framework.RemotePlayerChangedEvent) {
+      if (e.field === "isConnected") {
+        setIsCasting(e.value);
+      }
+    }
+    newControlller.addEventListener(
+      cast.framework.RemotePlayerEventType.IS_CONNECTED_CHANGED,
+      connectionChanged,
     );
 
-  return (
-    <video
-      className="absolute inset-0 w-full h-screen bg-black"
-      autoPlay
-      playsInline
-      ref={videoEl}
-    >
-      {subtitleTrack}
-    </video>
-  );
-}
+    return () => {
+      newControlller.removeEventListener(
+        cast.framework.RemotePlayerEventType.IS_CONNECTED_CHANGED,
+        connectionChanged,
+      );
+    };
+  }, [available, setPlayer, setController, setInstance, setIsCasting]);
 
-export function VideoContainer() {
-  const show = useShouldShowVideoElement();
-  useDisplayInterface();
-  useInitializeSource();
-
-  if (!show) return null;
-  return <VideoElement />;
+  return null;
 }
