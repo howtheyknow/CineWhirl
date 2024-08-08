@@ -82,7 +82,34 @@ const tokens = {
     c800: "#0F0F1B",
     c900: "#0A0A12",
   },
+  orange: {
+    c50: "#FFE5B4",
+    c100: "#FFD699",
+    c200: "#FFC266",
+    c300: "#FFAD33",
+    c400: "#FF9900",
+    c500: "#CC7A00",
+    c600: "#995C00",
+    c700: "#663D00",
+    c800: "#332000",
+    c900: "#1A1100",
+  },
+  pink: {
+    c50: "#FFCCE5",
+    c100: "#FF99CC",
+    c200: "#FF66B2",
+    c300: "#FF3399",
+    c400: "#FF0080",
+    c500: "#CC0066",
+    c600: "#99004D",
+    c700: "#660033",
+    c800: "#33001A",
+    c900: "#19000D",
+  },
 };
+
+export default tokens;
+
 
 export const defaultTheme = {
   extend: {
@@ -98,7 +125,6 @@ export const defaultTheme = {
         background: tokens.shade.c300,
         backgroundHover: tokens.shade.c200,
         highlight: tokens.blue.c200,
-
         activeBackground: tokens.shade.c300,
       },
 
@@ -119,7 +145,6 @@ export const defaultTheme = {
         toggleDisabled: tokens.ash.c500,
         danger: tokens.semantic.rose.c300,
         dangerHover: tokens.semantic.rose.c200,
-
         secondary: tokens.ash.c700,
         secondaryText: tokens.semantic.silver.c300,
         secondaryHover: tokens.ash.c700,
@@ -217,7 +242,6 @@ export const defaultTheme = {
         sidebar: {
           activeLink: tokens.shade.c600,
           badge: tokens.shade.c900,
-
           type: {
             secondary: tokens.shade.c200,
             inactive: tokens.shade.c50,
@@ -226,13 +250,11 @@ export const defaultTheme = {
             activated: tokens.purple.c50,
           },
         },
-
         card: {
           border: tokens.shade.c400,
           background: tokens.shade.c400,
           altBackground: tokens.shade.c400,
         },
-
         saveBar: {
           background: tokens.shade.c800,
         },
@@ -260,7 +282,6 @@ export const defaultTheme = {
       errors: {
         card: tokens.shade.c800,
         border: tokens.ash.c500,
-
         type: {
           secondary: tokens.ash.c100,
         },
@@ -288,12 +309,10 @@ export const defaultTheme = {
       // video player
       video: {
         buttonBackground: tokens.ash.c200,
-
         autoPlay: {
           background: tokens.ash.c700,
           hover: tokens.ash.c500,
         },
-
         scraping: {
           card: tokens.shade.c700,
           error: tokens.semantic.red.c200,
@@ -301,11 +320,9 @@ export const defaultTheme = {
           loading: tokens.purple.c200,
           noresult: tokens.ash.c100,
         },
-
         audio: {
           set: tokens.purple.c200,
         },
-
         context: {
           background: tokens.ash.c900,
           light: tokens.shade.c50,
@@ -320,14 +337,11 @@ export const defaultTheme = {
           slider: tokens.ash.c50,
           sliderFilled: tokens.purple.c200,
           error: tokens.semantic.red.c200,
-
           buttons: {
             list: tokens.ash.c700,
             active: tokens.ash.c900,
           },
-
           closeHover: tokens.ash.c800,
-
           type: {
             main: tokens.semantic.silver.c400,
             secondary: tokens.ash.c200,

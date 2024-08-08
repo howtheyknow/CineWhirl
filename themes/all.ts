@@ -13,5 +13,5 @@ export const allThemes = [
   red,
   blck,
   orange,
-  pink,
+  pink
 ]
