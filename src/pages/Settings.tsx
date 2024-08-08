@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
@@ -40,7 +40,7 @@ import { SubPageLayout } from "./layouts/SubPageLayout";
 import { AdminPanelPart } from "./parts/settings/AdminPanel";
 import { PreferencesPart } from "./parts/settings/PreferencesPart";
 
-function SettingsLayout(props: { children: React.ReactNode }) {
+function SettingsLayout({ children }: { children: React.ReactNode }) {
   const { isMobile } = useIsMobile();
 
   return (
@@ -52,13 +52,23 @@ function SettingsLayout(props: { children: React.ReactNode }) {
         )}
       >
         <SidebarPart />
-        <div>{props.children}</div>
+        <div>{children}</div>
       </div>
     </WideContainer>
   );
 }
 
-export function AccountSettings(props: {
+export function AccountSettings({
+  account,
+  deviceName,
+  setDeviceName,
+  colorA,
+  setColorA,
+  colorB,
+  setColorB,
+  userIcon,
+  setUserIcon,
+}: {
   account: AccountWithToken;
   deviceName: string;
   setDeviceName: (s: string) => void;
@@ -70,11 +80,11 @@ export function AccountSettings(props: {
   setUserIcon: (s: UserIcons) => void;
 }) {
   const url = useBackendUrl();
-  const { account } = props;
   const [sessionsResult, execSessions] = useAsyncFn(() => {
     if (!url) return Promise.resolve([]);
     return getSessions(url, account);
   }, [account, url]);
+
   useEffect(() => {
     execSessions();
   }, [execSessions]);
@@ -82,14 +92,14 @@ export function AccountSettings(props: {
   return (
     <>
       <AccountEditPart
-        deviceName={props.deviceName}
-        setDeviceName={props.setDeviceName}
-        colorA={props.colorA}
-        setColorA={props.setColorA}
-        colorB={props.colorB}
-        setColorB={props.setColorB}
-        userIcon={props.userIcon}
-        setUserIcon={props.setUserIcon}
+        deviceName={deviceName}
+        setDeviceName={setDeviceName}
+        colorA={colorA}
+        setColorA={setColorA}
+        colorB={colorB}
+        setColorB={setColorB}
+        userIcon={userIcon}
+        setUserIcon={setUserIcon}
       />
       <DeviceListPart
         error={!!sessionsResult.error}
@@ -133,6 +143,7 @@ export function SettingsPage() {
   const account = useAuthStore((s) => s.account);
   const updateProfile = useAuthStore((s) => s.setAccountProfile);
   const updateDeviceName = useAuthStore((s) => s.updateDeviceName);
+
   const decryptedName = useMemo(() => {
     if (!account) return "";
     return decryptData(account.deviceName, base64ToBuffer(account.seed));
@@ -177,7 +188,6 @@ export function SettingsPage() {
   }, [setPreviewTheme, activeTheme]);
 
   useEffect(() => {
-    // Clear preview theme on unmount
     return () => {
       setPreviewTheme(null);
     };
@@ -233,12 +243,11 @@ export function SettingsPage() {
       updateProfile(state.profile.state);
     }
 
-    // when backend url gets changed, log the user out first
     if (state.backendUrl.changed) {
       await logout();
 
       let url = state.backendUrl.state;
-      if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+      if (url && !url.startsWith("https://") && !url.startsWith("https://")) {
         url = `https://${url}`;
       }
 
@@ -260,6 +269,7 @@ export function SettingsPage() {
     logout,
     setBackendUrl,
   ]);
+
   return (
     <SubPageLayout>
       <PageTitle subpage k="global.pages.settings" />
@@ -274,9 +284,9 @@ export function SettingsPage() {
               deviceName={state.deviceName.state}
               setDeviceName={state.deviceName.set}
               colorA={state.profile.state.colorA}
-              setColorA={(v) => {
-                state.profile.set((s) => (s ? { ...s, colorA: v } : undefined));
-              }}
+              setColorA={(v) =>
+                state.profile.set((s) => (s ? { ...s, colorA: v } : undefined))
+              }
               colorB={state.profile.state.colorB}
               setColorB={(v) =>
                 state.profile.set((s) => (s ? { ...s, colorB: v } : undefined))
