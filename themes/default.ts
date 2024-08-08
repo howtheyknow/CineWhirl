@@ -82,7 +82,7 @@ const tokens = {
     c800: "#0F0F1B",
     c900: "#0A0A12",
   },
-  orange: {
+  Orange: {
     c50: "#FFE5B4",
     c100: "#FFD699",
     c200: "#FFC266",
@@ -94,7 +94,7 @@ const tokens = {
     c800: "#332000",
     c900: "#1A1100",
   },
-  pink: {
+  Pink: {
     c50: "#FFCCE5",
     c100: "#FF99CC",
     c200: "#FF66B2",
@@ -108,7 +108,6 @@ const tokens = {
   },
 };
 
-export default tokens;
 
 
 export const defaultTheme = {
