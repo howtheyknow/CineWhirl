@@ -19,97 +19,72 @@ export interface ThumbnailImagePosition {
 }
 
 /**
- * get nearest image at the timestamp provided
- * @param images images, must be sorted
+ * Gets the nearest image at the provided timestamp.
+ * Assumes images are sorted by their 'at' property.
+ * @param images - Array of ThumbnailImage, sorted by 'at'.
+ * @param at - Timestamp to find the nearest image for.
+ * @returns The nearest ThumbnailImagePosition or null if no images exist.
  */
 export function nearestImageAt(
   images: ThumbnailImage[],
   at: number,
 ): ThumbnailImagePosition | null {
-  // no images, early return
   if (images.length === 0) return null;
 
-  const indexPastTimestamp = images.findIndex((v) => v.at > at);
+  const indexPastTimestamp = images.findIndex((image) => image.at > at);
 
-  // no image found past timestamp, so last image must be closest
-  if (indexPastTimestamp === -1)
-    return {
-      index: images.length - 1,
-      image: images[images.length - 1],
-    };
+  if (indexPastTimestamp === -1) {
+    return { index: images.length - 1, image: images[images.length - 1] };
+  }
 
   const imagePastTimestamp = images[indexPastTimestamp];
+  if (indexPastTimestamp === 0) {
+    return { index: indexPastTimestamp, image: imagePastTimestamp };
+  }
 
-  // if past timestamp is first image, just return that image
-  if (indexPastTimestamp === 0)
-    return {
-      index: indexPastTimestamp,
-      image: imagePastTimestamp,
-    };
-
-  //             distance before             distance past
-  //                    |                          |
-  //  [before] --------------------- [at] --------------------- [past]
   const imageBeforeTimestamp = images[indexPastTimestamp - 1];
   const distanceBefore = at - imageBeforeTimestamp.at;
   const distancePast = imagePastTimestamp.at - at;
 
-  // if distance of before timestamp is smaller than the distance past
-  // before is closer, return that
-  //  [before] --X-------------- [past]
-  if (distanceBefore < distancePast)
-    return {
-      index: indexPastTimestamp - 1,
-      image: imageBeforeTimestamp,
-    };
+  if (distanceBefore < distancePast) {
+    return { index: indexPastTimestamp - 1, image: imageBeforeTimestamp };
+  }
 
-  // must be closer to past here, return past
-  //  [before] --------------X-- [past]
-  return {
-    index: indexPastTimestamp,
-    image: imagePastTimestamp,
-  };
+  return { index: indexPastTimestamp, image: imagePastTimestamp };
 }
 
 export const createThumbnailSlice: MakeSlice<ThumbnailSlice> = (set, get) => ({
   thumbnails: {
     images: [],
+
     resetImages() {
-      set((s) => {
-        s.thumbnails.images = [];
+      set((state) => {
+        state.thumbnails.images = [];
       });
     },
+
     addImage(img) {
       const store = get();
-      const exactOrPastImageIndex = store.thumbnails.images.findIndex(
-        (v) => v.at >= img.at,
+      const index = store.thumbnails.images.findIndex(
+        (image) => image.at >= img.at,
       );
 
-      // not found past or exact, so just append to the end
-      if (exactOrPastImageIndex === -1) {
-        set((s) => {
-          s.thumbnails.images.push(img);
-          s.thumbnails.images = [...s.thumbnails.images];
+      if (index === -1) {
+        set((state) => {
+          state.thumbnails.images.push(img);
+          state.thumbnails.images = [...state.thumbnails.images];
         });
-        return;
-      }
-
-      const exactOrPastImage = store.thumbnails.images[exactOrPastImageIndex];
-
-      // found exact, replace data
-      if (exactOrPastImage.at === img.at) {
-        set((s) => {
-          s.thumbnails.images[exactOrPastImageIndex] = img;
-          s.thumbnails.images = [...s.thumbnails.images];
+      } else if (store.thumbnails.images[index].at === img.at) {
+        set((state) => {
+          state.thumbnails.images[index] = img;
+          state.thumbnails.images = [...state.thumbnails.images];
         });
-        return;
+      } else {
+        set((state) => {
+          state.thumbnails.images.splice(index, 0, img);
+          state.thumbnails.images = [...state.thumbnails.images];
+        });
       }
-
-      // found one past, insert right before it
-      set((s) => {
-        s.thumbnails.images.splice(exactOrPastImageIndex, 0, img);
-        s.thumbnails.images = [...s.thumbnails.images];
-      });
     },
   },
 });

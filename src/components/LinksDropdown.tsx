@@ -15,7 +15,12 @@ function Divider() {
   return <hr className="border-0 w-full h-px bg-dropdown-border" />;
 }
 
-function GoToLink(props: {
+function GoToLink({
+  children,
+  href,
+  className,
+  onClick,
+}: {
   children: React.ReactNode;
   href?: string;
   className?: string;
@@ -23,32 +28,42 @@ function GoToLink(props: {
 }) {
   const navigate = useNavigate();
 
-  const goTo = (href: string) => {
-    if (href.startsWith("http")) {
-      window.open(href, "_blank");
-    } else {
-      window.scrollTo(0, 0);
-      navigate(href);
-    }
+  const handleNavigation = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    (href: string) => {
+      if (href.startsWith("http")) {
+        window.open(href, "_blank");
+      } else {
+        window.scrollTo(0, 0);
+        navigate(href);
+      }
+    },
+    [navigate],
+  );
+
+  const handleClick = (
+    evt: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
+  ) => {
+    evt.preventDefault();
+    if (href) handleNavigation(href);
+    else onClick?.();
   };
 
   return (
-    <a
-      tabIndex={0}
-      href={props.href}
-      onClick={(evt) => {
-        evt.preventDefault();
-        if (props.href) goTo(props.href);
-        else props.onClick?.();
-      }}
-      className={props.className}
-    >
-      {props.children}
+    <a tabIndex={0} href={href} onClick={handleClick} className={className}>
+      {children}
     </a>
   );
 }
 
-function DropdownLink(props: {
+function DropdownLink({
+  children,
+  href,
+  icon,
+  highlight,
+  className,
+  onClick,
+}: {
   children: React.ReactNode;
   href?: string;
   icon?: Icons;
@@ -58,34 +73,34 @@ function DropdownLink(props: {
 }) {
   return (
     <GoToLink
-      onClick={props.onClick}
-      href={props.href}
+      onClick={onClick}
+      href={href}
       className={classNames(
         "tabbable cursor-pointer flex gap-3 items-center m-3 p-1 rounded font-medium transition-colors duration-100",
-        props.highlight
+        highlight
           ? "text-dropdown-highlight hover:text-dropdown-highlightHover"
           : "text-dropdown-text hover:text-white",
-        props.className,
+        className,
       )}
     >
-      {props.icon ? <Icon icon={props.icon} className="text-xl" /> : null}
-      {props.children}
+      {icon && <Icon icon={icon} className="text-xl" />}
+      {children}
     </GoToLink>
   );
 }
 
-function CircleDropdownLink(props: { icon: Icons; href: string }) {
+function CircleDropdownLink({ icon, href }: { icon: Icons; href: string }) {
   return (
     <GoToLink
-      href={props.href}
+      href={href}
       className="tabbable w-11 h-11 rounded-full bg-dropdown-contentBackground text-dropdown-text hover:text-white transition-colors duration-100 flex justify-center items-center"
     >
-      <Icon className="text-2xl" icon={props.icon} />
+      <Icon className="text-2xl" icon={icon} />
     </GoToLink>
   );
 }
 
-export function LinksDropdown(props: { children: React.ReactNode }) {
+export function LinksDropdown({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const deviceName = useAuthStore((s) => s.account?.deviceName);
@@ -96,18 +111,19 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
   );
   const { logout } = useAuth();
 
-  useEffect(() => {
-    function onWindowClick(evt: MouseEvent) {
-      if ((evt.target as HTMLElement).closest(".is-dropdown")) return;
+  const handleWindowClick = useCallback((evt: MouseEvent) => {
+    if (!(evt.target as HTMLElement).closest(".is-dropdown")) {
       setOpen(false);
     }
-
-    window.addEventListener("click", onWindowClick);
-    return () => window.removeEventListener("click", onWindowClick);
   }, []);
 
-  const toggleOpen = useCallback(() => {
-    setOpen((s) => !s);
+  useEffect(() => {
+    window.addEventListener("click", handleWindowClick);
+    return () => window.removeEventListener("click", handleWindowClick);
+  }, [handleWindowClick]);
+
+  const toggleDropdown = useCallback(() => {
+    setOpen((prev) => !prev);
   }, []);
 
   return (
@@ -115,14 +131,14 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
       <div
         className="cursor-pointer tabbable rounded-full flex gap-2 text-white items-center py-2 px-3 bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover backdrop-blur-lg transition-[background,transform] duration-100 hover:scale-105"
         tabIndex={0}
-        onClick={toggleOpen}
-        onKeyUp={(evt) => evt.key === "Enter" && toggleOpen()}
+        onClick={toggleDropdown}
+        onKeyUp={(evt) => evt.key === "Enter" && toggleDropdown()}
       >
-        {props.children}
+        {children}
         <Icon
           className={classNames(
             "text-xl transition-transform duration-100",
-            open ? "rotate-180" : "",
+            open && "rotate-180",
           )}
           icon={Icons.CHEVRON_DOWN}
         />
@@ -149,7 +165,7 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
           <DropdownLink href="/discover" icon={Icons.RISING_STAR}>
             {t("navigation.menu.discover")}
           </DropdownLink>
-          {deviceName ? (
+          {deviceName && (
             <DropdownLink
               className="!text-type-danger opacity-75 hover:opacity-100"
               icon={Icons.LOGOUT}
@@ -157,7 +173,7 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
             >
               {t("navigation.menu.logout")}
             </DropdownLink>
-          ) : null}
+          )}
           <Divider />
           <div className="my-4 flex justify-center items-center gap-4">
             <CircleDropdownLink

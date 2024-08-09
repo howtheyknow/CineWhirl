@@ -9,6 +9,7 @@ import {
 import { useQualityStore } from "@/stores/quality";
 import { ValuesOf } from "@/utils/typeguard";
 
+// Player status constants
 export const playerStatus = {
   IDLE: "idle",
   SCRAPING: "scraping",
@@ -19,6 +20,7 @@ export const playerStatus = {
 
 export type PlayerStatus = ValuesOf<typeof playerStatus>;
 
+// Interface definitions
 export interface PlayerMetaEpisode {
   number: number;
   tmdbId: string;
@@ -91,9 +93,10 @@ export interface SourceSlice {
   redisplaySource(startAt: number): void;
 }
 
+// Helper function to convert metadata to scrape media format
 export function metaToScrapeMedia(meta: PlayerMeta): ScrapeMedia {
   if (meta.type === "show") {
-    if (!meta.episode || !meta.season) throw new Error("missing show data");
+    if (!meta.episode || !meta.season) throw new Error("Missing show data");
     return {
       title: meta.title,
       releaseYear: meta.releaseYear,
@@ -114,6 +117,7 @@ export function metaToScrapeMedia(meta: PlayerMeta): ScrapeMedia {
   };
 }
 
+// Factory function to create the source slice
 export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   source: null,
   sourceId: null,
@@ -128,67 +132,77 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     selected: null,
     asTrack: false,
   },
+
   setSourceId(id) {
-    set((s) => {
-      s.status = playerStatus.PLAYING;
-      s.sourceId = id;
+    set((state) => {
+      state.status = playerStatus.PLAYING;
+      state.sourceId = id;
     });
   },
+
   setStatus(status: PlayerStatus) {
-    set((s) => {
-      s.status = status;
+    set((state) => {
+      state.status = status;
     });
   },
+
   setMeta(meta, newStatus) {
-    set((s) => {
-      s.meta = meta;
-      s.interface.hideNextEpisodeBtn = false;
-      if (newStatus) s.status = newStatus;
+    set((state) => {
+      state.meta = meta;
+      state.interface.hideNextEpisodeBtn = false;
+      if (newStatus) state.status = newStatus;
     });
   },
+
   setCaption(caption) {
     const store = get();
     store.display?.setCaption(caption);
-    set((s) => {
-      s.caption.selected = caption;
+    set((state) => {
+      state.caption.selected = caption;
     });
   },
+
   setSource(
     stream: SourceSliceSource,
     captions: CaptionListItem[],
     startAt: number,
   ) {
-    let qualities: string[] = [];
-    if (stream.type === "file") qualities = Object.keys(stream.qualities);
     const qualityPreferences = useQualityStore.getState();
     const loadableStream = selectQuality(stream, qualityPreferences.quality);
 
-    set((s) => {
-      s.source = stream;
-      s.qualities = qualities as SourceQuality[];
-      s.currentQuality = loadableStream.quality;
-      s.captionList = captions;
-      s.interface.error = undefined;
-      s.status = playerStatus.PLAYING;
-      s.audioTracks = [];
-      s.currentAudioTrack = null;
+    set((state) => {
+      state.source = stream;
+      state.qualities =
+        stream.type === "file"
+          ? (Object.keys(stream.qualities) as SourceQuality[])
+          : [];
+      state.currentQuality = loadableStream.quality;
+      state.captionList = captions;
+      state.interface.error = undefined;
+      state.status = playerStatus.PLAYING;
+      state.audioTracks = [];
+      state.currentAudioTrack = null;
     });
+
     const store = get();
     store.redisplaySource(startAt);
   },
+
   redisplaySource(startAt: number) {
     const store = get();
-    const quality = store.currentQuality;
     if (!store.source) return;
+
     const qualityPreferences = useQualityStore.getState();
     const loadableStream = selectQuality(store.source, {
       automaticQuality: qualityPreferences.quality.automaticQuality,
-      lastChosenQuality: quality,
+      lastChosenQuality: store.currentQuality,
     });
-    set((s) => {
-      s.interface.error = undefined;
-      s.status = playerStatus.PLAYING;
+
+    set((state) => {
+      state.interface.error = undefined;
+      state.status = playerStatus.PLAYING;
     });
+
     store.display?.load({
       source: loadableStream.stream,
       startAt,
@@ -196,17 +210,21 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       preferredQuality: qualityPreferences.quality.lastChosenQuality,
     });
   },
+
   switchQuality(quality) {
     const store = get();
     if (!store.source) return;
+
     if (store.source.type === "file") {
       const selectedQuality = store.source.qualities[quality];
       if (!selectedQuality) return;
-      set((s) => {
-        s.currentQuality = quality;
-        s.status = playerStatus.PLAYING;
-        s.interface.error = undefined;
+
+      set((state) => {
+        state.currentQuality = quality;
+        state.status = playerStatus.PLAYING;
+        state.interface.error = undefined;
       });
+
       store.display?.load({
         source: selectedQuality,
         startAt: store.progress.time,
@@ -217,6 +235,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       store.display?.changeQuality(false, quality);
     }
   },
+
   enableAutomaticQuality() {
     const store = get();
     store.display?.changeQuality(true, null);
