@@ -35,6 +35,11 @@ const availableThemes = [
     selector: "theme-blck",
     key: "settings.appearance.themes.blck",
   },
+  {
+    id: "pink",
+    selector: "theme-pink",
+    key: "settings.appearance.themes.pink",
+  },
 ];
 
 function ThemePreview(props: {
