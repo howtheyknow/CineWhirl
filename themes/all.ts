@@ -5,6 +5,7 @@ import gray from "./list/gray";
 import blck from "./list/blck";
 import pink from "./list/Pink";
 
+
 export const allThemes = [
   teal,
   blue,
